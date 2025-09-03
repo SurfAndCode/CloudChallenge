@@ -19,6 +19,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # Bundle deps INTO the package so the worker can import them
+      - name: Install dependencies into .python_packages
+        working-directory: BackEnd
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt --target ".python_packages/lib/site-packages"
+          # (optional) sanity check
+          test -d .python_packages/lib/site-packages/azure || (echo "azure package missing" && exit 1)
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -26,7 +40,7 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_BF85C72FBE354B9894D6BFDE4759F9ED }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_BC8A0FC42588424E85E120917C57ED9C }}
 
-      # Deploy the BackEnd folder (the action zips it and sets WEBSITE_RUN_FROM_PACKAGE)
+      # Deploy the BackEnd folder (the action zips its *contents* as the package root)
       - name: Deploy to Azure Functions
         uses: Azure/functions-action@v1
         with:

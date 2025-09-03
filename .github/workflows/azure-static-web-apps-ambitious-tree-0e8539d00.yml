@@ -10,16 +10,27 @@ on:
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
-    name: Build and Deploy
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build And Deploy
+      # (Optional) set up Node.js if your FrontEnd uses npm/yarn
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # The deploy step (build is auto-run if a package.json exists)
+      - name: Build and Deploy
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: "upload"
-          app_location: "FrontEnd"          # ← your app folder ('' if repo root)
-          api_location: ""                  # ← leave empty (separate Function App)
-          output_location: "dist"           # ← 'dist', 'build', 'out', etc.
+
+          # Your front-end source folder
+          app_location: FrontEnd
+
+          # If your framework outputs to "dist" (Vite/Vue/Svelte/Next export): use "dist"
+          # If Create React App: use "build"
+          # If plain static (no build): set to "" and make sure files live in FrontEnd
+          output_location: dist
+
+          # You’re using a separate Azure Functions app (counterAPI), so leave this empty
+          api_location: ""

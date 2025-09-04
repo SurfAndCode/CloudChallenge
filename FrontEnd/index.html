@@ -5,128 +5,73 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Resume — Zoltan Olasz</title>
   <meta name="description" content="Modern responsive resume for Zoltan Olasz" />
+  <!-- Color scheme + theme color for better address bar styling -->
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)">
+  <!-- Preconnect to font hosts for faster paints -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="counter-bg" style="min-height:100dvh;display:grid;place-items:center;margin:0">
+<body class="counter-bg">
   <div class="page">
     <div class="resume">
       <!-- LEFT: Sidebar -->
       <aside class="sidebar card">
         <div class="top">
-          <div class="avatar" aria-hidden="true">
-            <img src="me.jpg" alt="Profile photo">
-          </div>
-          <h1 class="name" style="margin:16px 0 2px">Zoltan Olasz</h1>
-          <div class="role">Senior IT Support Officer</div>
+          <figure class="avatar" aria-hidden="true">
+            <img src="me.jpg" width="216" height="216" alt="Portrait of Zoltan Olasz" decoding="async" loading="eager" fetchpriority="high">
+          </figure>
+          <h1 class="name">Zoltan Olasz</h1>
+          <p class="role">Senior IT Support Officer</p>
         </div>
 
+        <!-- Live Visitor Counter -->
         <section class="counter-card" aria-labelledby="vc-h">
-    <div class="row">
-      <span class="dot" aria-hidden="true"></span>
-      <span class="badge">Live</span>
-    </div>
+          <div class="row">
+            <span class="dot" aria-hidden="true"></span>
+            <span class="badge">Live</span>
+          </div>
 
-    <h2 id="vc-h" class="title" style="margin-top:16px">Total visitors</h2>
+          <h2 id="vc-h" class="title">Total visitors</h2>
 
-    <div aria-live="polite" aria-atomic="true">
-      <div id="visit-value" class="value"><span class="skeleton"></span></div>
-      <div id="visit-sub" class="sub">Fetching count…</div>
-    </div>
+          <div aria-live="polite" aria-atomic="true">
+            <div id="visit-value" class="value"><span class="skeleton"></span></div>
+            <div id="visit-sub" class="sub">Fetching count…</div>
+          </div>
 
-    <div class="cta">
-      <span class="tip">Updates when you open the page</span>
-      <button id="visit-refresh" class="counter-refresh" type="button">Refresh</button>
-    </div>
-  </section>
+          <div class="cta">
+            <span class="tip">Updates when you open the page</span>
+            <button id="visit-refresh" class="counter-refresh" type="button">Refresh</button>
+          </div>
 
-<script>
-/* ====== CONFIG ====== */
-const ENDPOINT = "https://counterapi-a5aeacedhma9ecev.australiasoutheast-01.azurewebsites.net/api/visit";
-/*
-  INCREMENT_BEHAVIOR:
-  - "session": POST (inc 1) only once per browser tab session; otherwise GET
-  - "always" : POST every load
-  - "never"  : GET only (read-only)
-*/
-const INCREMENT_BEHAVIOR = "session";
-/* ==================== */
-
-const elValue = document.getElementById("visit-value");
-const elSub   = document.getElementById("visit-sub");
-const elBtn   = document.getElementById("visit-refresh");
-
-function countUp(el, from, to, ms=800){
-  const start = performance.now();
-  const fmt = n => n.toLocaleString(undefined);
-  function frame(now){
-    const t = Math.min(1, (now - start)/ms);
-    const eased = t<.5 ? 2*t*t : -1 + (4 - 2*t)*t;
-    const val = Math.round(from + (to - from) * eased);
-    el.textContent = fmt(val);
-    if (t < 1) requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
-}
-
-function shouldPost(){
-  if (INCREMENT_BEHAVIOR === "always") return true;
-  if (INCREMENT_BEHAVIOR === "never") return false;
-  // "session"
-  const KEY = "visitCounter.incremented";
-  const isPrerender = document.visibilityState === "prerender";
-  const isBot = /bot|crawl|spider|slurp|bingpreview/i.test(navigator.userAgent||"");
-  if (sessionStorage.getItem(KEY) || isPrerender || isBot) return false;
-  sessionStorage.setItem(KEY, "1");
-  return true;
-}
-
-async function fetchCount({forceGet=false}={}){
-  const method = (shouldPost() && !forceGet) ? "POST" : "GET";
-  const url = method === "POST" ? ENDPOINT + "?inc=1" : ENDPOINT;
-  try{
-    elSub.textContent = method === "POST" ? "Counting your visit…" : "Loading…";
-    const res = await fetch(url, { method, mode:"cors", cache:"no-store", headers:{ "Accept":"application/json" } });
-    if (!res.ok) throw new Error("HTTP "+res.status);
-    const data = await res.json();
-    const next = Number(data?.count ?? NaN);
-    if (!Number.isFinite(next)) throw new Error("Invalid count");
-    const current = Number(elValue.textContent.replace(/[^0-9]/g,"")) || 0;
-    elValue.classList.remove("skeleton");
-    countUp(elValue, current, next, 700);
-    elSub.textContent = "Last updated just now";
-  }catch(err){
-    console.error("visit counter error:", err);
-    elValue.textContent = "—";
-    elSub.textContent = "Couldn’t load counter";
-  }
-}
-
-elBtn?.addEventListener("click", () => fetchCount({forceGet:true}));
-fetchCount();
-</script>
-
+          <noscript>
+            <p class="sub">JavaScript is disabled. Visitor count requires JavaScript to fetch.</p>
+          </noscript>
+        </section>
 
         <div class="section contact" aria-label="Contact">
           <h2 class="h">Contact</h2>
           <ul>
             <li data-emoji="📍"><span>Gold Coast, Australia</span></li>
-            <li data-emoji="☎️"><a href="#">+61 7 5585 4197</a></li>
+            <li data-emoji="☎️"><a href="tel:+61755854197">+61 7 5585 4197</a></li>
             <li data-emoji="✉️"><a href="mailto:zoltano@aclgroup.com.au">zoltano@aclgroup.com.au</a></li>
-            <li data-emoji="🔗"><a href="#" rel="noopener">www.zoltanolasz.com</a></li>
+            <li data-emoji="🔗"><a href="https://www.zoltanolasz.com" target="_blank" rel="noopener noreferrer">www.zoltanolasz.com</a></li>
           </ul>
         </div>
 
         <div class="section" aria-label="Skills">
           <h2 class="h">Skills <span class="pill">core</span></h2>
           <div class="skills">
-            <div class="skill"><div class="skill-name">HTML</div><div class="meter"><span style="--p:85"></span></div><div class="pct">90%</div></div>
-            <div class="skill"><div class="skill-name">CSS</div><div class="meter"><span style="--p:90"></span></div><div class="pct">70%</div></div>
+            <div class="skill"><div class="skill-name">HTML</div><div class="meter"><span style="--p:90"></span></div><div class="pct">90%</div></div>
+            <div class="skill"><div class="skill-name">CSS</div><div class="meter"><span style="--p:90"></span></div><div class="pct">90%</div></div>
             <div class="skill"><div class="skill-name">JavaScript</div><div class="meter"><span style="--p:75"></span></div><div class="pct">75%</div></div>
             <div class="skill"><div class="skill-name">Python</div><div class="meter"><span style="--p:80"></span></div><div class="pct">80%</div></div>
-            <div class="skill"><div class="skill-name">SysAdmin</div><div class="meter"><span style="--p:85"></span></div><div class="pct">95%</div></div>
-            <div class="skill"><div class="skill-name">PowerShell</div><div class="meter"><span style="--p:85"></span></div><div class="pct">80%</div></div>
-            <div class="skill"><div class="skill-name">SQL</div><div class="meter"><span style="--p:85"></span></div><div class="pct">95%</div></div>
+            <div class="skill"><div class="skill-name">SysAdmin</div><div class="meter"><span style="--p:95"></span></div><div class="pct">95%</div></div>
+            <div class="skill"><div class="skill-name">PowerShell</div><div class="meter"><span style="--p:80"></span></div><div class="pct">80%</div></div>
+            <div class="skill"><div class="skill-name">SQL</div><div class="meter"><span style="--p:95"></span></div><div class="pct">95%</div></div>
             <div class="skill"><div class="skill-name">Docker</div><div class="meter"><span style="--p:85"></span></div><div class="pct">85%</div></div>
           </div>
         </div>
@@ -164,40 +109,25 @@ fetchCount();
               <div class="muted">
                 <ul class="muted">
                   <li><strong>Cloud Infrastructure Management:</strong> Overseeing the Azure and GCP cloud infrastructures, ensuring optimal performance and security. <em>Azure:</em> Managing Entra ID, Defender Security, Intune, Active Directory (on-prem), and Teams administration.</li>
-
-                  <li><strong>Firewall and VPN Management:</strong> Administering and configuring the organization’s firewall and ensuring secure, reliable VPN connections for remote access.</li>
-
+                  <li><strong>Firewall &amp; VPN:</strong> Administering and configuring the organization’s firewall and ensuring secure, reliable VPN connections for remote access.</li>
                   <li><strong>Security Auditing:</strong> Conducting regular security audits to identify and mitigate vulnerabilities and ensure the organisation maintains its ISO-27000 standing.</li>
-
-                  <li><strong>Asset and Endpoint Management:</strong> Managing IT assets with up-to-date tracking/reporting and maintaining endpoint security measures.</li>
-
-                  <li><strong>Pen testing:</strong> Working with the penetration test provider to check systems for vulnerabilities and ensuring secure coding and web app security (OWASP 4.2).</li>
-
+                  <li><strong>Asset &amp; Endpoint:</strong> Managing IT assets with up-to-date tracking/reporting and maintaining endpoint security measures.</li>
+                  <li><strong>Pentesting:</strong> Coordinating with providers to test systems for vulnerabilities and ensure secure coding and web app security (OWASP 4.2).</li>
                   <li>Meet and/or exceed performance expectations with a willingness to improve and develop with coaching/mentoring.</li>
-
                   <li>Undertake training as needed to fulfil the requirements of the role.</li>
-
                   <li>Provide support to resolve issues related to local and cloud-based infrastructure and software resources.</li>
-
                   <li>Manage incoming requests via email and helpdesk tickets.</li>
-
                   <li>Assist with configuration and installation of all new IT hardware.</li>
-
                   <li>Provision and decommission user accounts in all user-facing systems.</li>
-
                   <li>Provide induction training to new staff and when new systems or hardware are introduced.</li>
-
                   <li>Provide assistance to other IT staff and service providers as required.</li>
-
                   <li>Reporting.</li>
-
                   <li>Establish policies and procedures for the IT Support Team.</li>
-
                   <li>Document systems used by the IT Support Team.</li>
                 </ul>
-
               </div>
             </article>
+
             <article class="item" role="listitem">
               <div class="date">2021 – 2024</div>
               <div class="title">
@@ -206,6 +136,7 @@ fetchCount();
               </div>
               <div class="muted">Concise bullet-style sentence describing scope and results.</div>
             </article>
+
             <article class="item" role="listitem">
               <div class="date">2015 – 2021</div>
               <div class="title">
@@ -233,15 +164,84 @@ fetchCount();
           <div class="chips" role="list">
             <span class="chip" role="listitem">🏄‍♂️ Surfing</span>
             <span class="chip" role="listitem">🏋️‍♀️ Kettlebells</span>
-            <span class="chip" role="listitem">🎸Music</span>
+            <span class="chip" role="listitem">🎸 Music</span>
           </div>
         </section>
 
         <section class="section no-print" aria-label="Actions">
-          <a class="btn" href="#" onclick="window.print()">🖨️ Print / Save as PDF</a>
+          <button class="btn" type="button" onclick="window.print()">🖨️ Print / Save as PDF</button>
         </section>
       </main>
     </div>
   </div>
+
+  <script defer>
+  /* ====== CONFIG ====== */
+  const ENDPOINT = "https://counterapi-a5aeacedhma9ecev.australiasoutheast-01.azurewebsites.net/api/visit";
+  /*
+    INCREMENT_BEHAVIOR:
+    - "session": POST (inc 1) only once per browser tab session; otherwise GET
+    - "always" : POST every load
+    - "never"  : GET only (read-only)
+  */
+  const INCREMENT_BEHAVIOR = "session";
+  /* ==================== */
+
+  const elValue = document.getElementById("visit-value");
+  const elSub   = document.getElementById("visit-sub");
+  const elBtn   = document.getElementById("visit-refresh");
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function countUp(el, from, to, ms=800){
+    if (prefersReducedMotion) { el.textContent = to.toLocaleString(); return; }
+    const start = performance.now();
+    const fmt = n => n.toLocaleString(undefined);
+    function frame(now){
+      const t = Math.min(1, (now - start)/ms);
+      const eased = t<.5 ? 2*t*t : -1 + (4 - 2*t)*t;
+      const val = Math.round(from + (to - from) * eased);
+      el.textContent = fmt(val);
+      if (t < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function shouldPost(){
+    if (INCREMENT_BEHAVIOR === "always") return true;
+    if (INCREMENT_BEHAVIOR === "never") return false;
+    // "session"
+    const KEY = "visitCounter.incremented";
+    const isPrerender = document.visibilityState === "prerender";
+    const isBot = /bot|crawl|spider|slurp|bingpreview/i.test(navigator.userAgent||"");
+    if (sessionStorage.getItem(KEY) || isPrerender || isBot) return false;
+    sessionStorage.setItem(KEY, "1");
+    return true;
+  }
+
+  async function fetchCount({forceGet=false}={}){
+    const method = (shouldPost() && !forceGet) ? "POST" : "GET";
+    const url = method === "POST" ? ENDPOINT + "?inc=1" : ENDPOINT;
+    try{
+      elSub.textContent = method === "POST" ? "Counting your visit…" : "Loading…";
+      const res = await fetch(url, { method, mode:"cors", cache:"no-store", headers:{ "Accept":"application/json" } });
+      if (!res.ok) throw new Error("HTTP "+res.status);
+      const data = await res.json();
+      const next = Number(data?.count ?? NaN);
+      if (!Number.isFinite(next)) throw new Error("Invalid count");
+      const current = Number(elValue.textContent.replace(/[^0-9]/g,"")) || 0;
+      elValue.classList.remove("skeleton");
+      countUp(elValue, current, next, 700);
+      elSub.textContent = "Last updated just now";
+    }catch(err){
+      console.error("visit counter error:", err);
+      elValue.textContent = "—";
+      elSub.textContent = "Couldn’t load counter";
+    }
+  }
+
+  elBtn?.addEventListener("click", () => fetchCount({forceGet:true}));
+  fetchCount();
+  </script>
 </body>
 </html>

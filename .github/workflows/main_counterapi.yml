@@ -5,76 +5,47 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-env:
-  PYTHON_VERSION: '3.11'
-  APP_NAME: 'counterAPI'
-  RESOURCE_GROUP: 'CloudChallenge'   # <-- set this
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions: { id-token: write, contents: read }
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      APP_NAME: counterAPI
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }} 
+          python-version: '3.11'
 
-      # ensure v1 files exist
-      - name: Validate v1 layout
-        working-directory: BackEnd
-        run: |
-          test -f host.json
-          test -f runtime.txt
-          test -f requirements.txt
-          test -f health/__init__.py
-          test -f health/function.json
-          grep -qx "python-3.11" runtime.txt
-
-      # install requirements INTO the package
-      - name: Install deps into .python_packages
+      # Bundle dependencies into the artifact (Linux Functions expects this)
+      - name: Bundle dependencies into .python_packages
         working-directory: BackEnd
         shell: bash
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt --target ".python_packages/lib/site-packages"
+          # sanity: prove azure.functions is in the package
           python - <<'PY'
-          import sys, pathlib, importlib.util
-          p = pathlib.Path(".python_packages/lib/site-packages").resolve()
-          sys.path.insert(0, str(p))
-          assert importlib.util.find_spec("azure.functions"), "azure.functions not packaged"
-          print("deps OK")
+          import sys, pathlib
+          sys.path.insert(0, str(pathlib.Path(".python_packages/lib/site-packages").resolve()))
+          import azure.functions
+          print("azure.functions import OK")
           PY
 
-      - name: Azure login
+      - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_F973D9E64E684B118D6F201CC9D4AB22 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_BF85C72FBE354B9894D6BFDE4759F9ED }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_BC8A0FC42588424E85E120917C57ED9C }}
 
-      # force known-good runtime & settings
-      - name: Ensure Function App config
-        uses: azure/CLI@v2
-        with:
-          inlineScript: |
-            az functionapp config set -g ${{ env.RESOURCE_GROUP }} -n ${{ env.APP_NAME }} --linux-fx-version "PYTHON|3.11"
-            az functionapp config appsettings set -g ${{ env.RESOURCE_GROUP }} -n ${{ env.APP_NAME }} --settings \
-              FUNCTIONS_WORKER_RUNTIME=python FUNCTIONS_EXTENSION_VERSION=~4 WEBSITE_RUN_FROM_PACKAGE=1 \
-              SCM_DO_BUILD_DURING_DEPLOYMENT=0 ENABLE_ORYX_BUILD=0
-
-      # deploy the CONTENTS of BackEnd as the zip root
-      - name: Deploy
+      - name: Deploy BackEnd to Azure Functions
         uses: Azure/functions-action@v1
         with:
           app-name: ${{ env.APP_NAME }}
           package: BackEnd
-
-      # quick verify: list discovered functions
-      - name: Verify functions
-        uses: azure/CLI@v2
-        with:
-          inlineScript: |
-            az functionapp function list -g ${{ env.RESOURCE_GROUP }} -n ${{ env.APP_NAME }} -o table

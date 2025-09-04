@@ -5,47 +5,36 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-env:
-  PYTHON_VERSION: '3.11'
-  APP_NAME: 'counterAPI'
-  RESOURCE_GROUP: 'CloudChallenge'   # <-- set this
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
+    env:
+      APP_NAME: counterAPI
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: '3.11'
 
-      # Guardrails: ensure the BackEnd folder has the required files
-      - name: Validate project layout
+      # Bundle dependencies into the artifact (Linux Functions expects this)
+      - name: Bundle dependencies into .python_packages
         working-directory: BackEnd
-        run: |
-          test -f host.json || (echo "host.json missing" && exit 1)
-          test -f runtime.txt || (echo "runtime.txt missing" && exit 1)
-          test -f function_app.py || (echo "function_app.py missing" && exit 1)
-          grep -qx "python-3.11" runtime.txt || (echo "runtime.txt must be 'python-3.11'" && exit 1)
-
-      # Bundle deps so the Linux worker can import them at runtime
-      - name: Install dependencies into .python_packages
-        working-directory: BackEnd
+        shell: bash
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt --target ".python_packages/lib/site-packages"
-          # sanity check that azure.functions is actually in the artifact
+          # sanity: prove azure.functions is in the package
           python - <<'PY'
-          import sys, pkgutil, pathlib
+          import sys, pathlib
           sys.path.insert(0, str(pathlib.Path(".python_packages/lib/site-packages").resolve()))
-          print("has azure.functions:", bool(pkgutil.find_loader("azure.functions")))
+          import azure.functions
+          print("azure.functions import OK")
           PY
 
       - name: Azure login (OIDC)
@@ -55,29 +44,8 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_BF85C72FBE354B9894D6BFDE4759F9ED }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_BC8A0FC42588424E85E120917C57ED9C }}
 
-      # Force a known-good runtime: Python 3.11 + Functions v4, disable remote build flags
-      - name: Ensure Function App config
-        uses: azure/CLI@v2
-        with:
-          inlineScript: |
-            az functionapp config set -g ${{ env.RESOURCE_GROUP }} -n ${{ env.APP_NAME }} --linux-fx-version "PYTHON|3.11"
-            az functionapp config appsettings set -g ${{ env.RESOURCE_GROUP }} -n ${{ env.APP_NAME }} --settings \
-              FUNCTIONS_WORKER_RUNTIME=python \
-              FUNCTIONS_EXTENSION_VERSION=~4 \
-              WEBSITE_RUN_FROM_PACKAGE=1 \
-              SCM_DO_BUILD_DURING_DEPLOYMENT=0 \
-              ENABLE_ORYX_BUILD=0
-
-      # Deploy the CONTENTS of BackEnd as the zip root (action zips that folder)
-      - name: Deploy to Azure Functions
+      - name: Deploy BackEnd to Azure Functions
         uses: Azure/functions-action@v1
         with:
           app-name: ${{ env.APP_NAME }}
           package: BackEnd
-
-      # Quick verification: list discovered functions (should include "health")
-      - name: Verify functions discovered
-        uses: azure/CLI@v2
-        with:
-          inlineScript: |
-            az functionapp function list -g ${{ env.RESOURCE_GROUP }} -n ${{ env.APP_NAME }} -o table

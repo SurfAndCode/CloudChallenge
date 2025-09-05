@@ -288,3 +288,11 @@ button.counter-refresh:focus-visible{ border-color: rgba(14,165,233,.4); outline
   width: 100%;           /* fill the sidebar */
   margin: 0;             /* remove the fixed/narrow width & margins */
 }
+
+/* ==== Align Education & Other Qualifications with Work Experience ==== */
+.bullets{
+  list-style: disc outside;
+  padding-left: 22px;   /* matches .item’s left pad in the timeline */
+  margin: 8px 0 0;
+}
+.bullets li{ color: var(--muted); line-height: 1.6 }

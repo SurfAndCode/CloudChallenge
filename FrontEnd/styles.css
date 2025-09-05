@@ -311,3 +311,22 @@ button.counter-refresh:focus-visible{ border-color: rgba(14,165,233,.4); outline
 
 /* Ensure bullets in "Other Qualifications" are white too */
 .bullets li{ color: var(--text) !important; }
+
+/* ==== Align Education & Other Qualifications with Work Experience text column ==== */
+:root{ --axis: 22px; } /* same indent used by .item */
+
+/* Education: remove timeline dot/line, keep text aligned to content column */
+section[aria-label="Education"] .timeline{ margin-left: 0; }
+section[aria-label="Education"] .timeline .item{
+  padding-left: 0;
+  margin-left: var(--axis);
+}
+section[aria-label="Education"] .timeline .item::before,
+section[aria-label="Education"] .timeline .item::after{ display: none; }
+
+/* Other Qualifications: align list to the same content column */
+section[aria-label="Other qualifications"] .bullets{
+  margin-left: var(--axis);
+  padding-left: 0;
+  list-style-position: outside;
+}

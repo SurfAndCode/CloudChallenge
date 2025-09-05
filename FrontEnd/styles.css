@@ -330,3 +330,8 @@ section[aria-label="Other qualifications"] .bullets{
   padding-left: 0;
   list-style-position: outside;
 }
+
+/* Align "Other Qualifications" bullets with Work Experience bullets */
+section[aria-label="Other qualifications"] ul{ 
+  margin-left: 22px; 
+}

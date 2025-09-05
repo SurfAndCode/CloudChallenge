@@ -268,3 +268,23 @@ button.counter-refresh{
 }
 button.counter-refresh:hover,
 button.counter-refresh:focus-visible{ border-color: rgba(14,165,233,.4); outline: none }
+
+/* Darker look */
+:root{
+  --bg:   #060a12;   /* darker page background */
+  --card: #0a1324;   /* darker cards */
+  --text: #e6e9ee;   /* slightly lighter text for contrast */
+}
+
+/* Center & enlarge avatar */
+.avatar{
+  width: 140px;
+  height: 140px;
+  margin-inline: auto;   /* centers the image in the sidebar */
+}
+
+/* Make the visitor counter as wide as the sidebar card */
+.sidebar .counter-card{
+  width: 100%;           /* fill the sidebar */
+  margin: 0;             /* remove the fixed/narrow width & margins */
+}

@@ -2,12 +2,16 @@ name: Azure Static Web Apps CI/CD
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+    paths:
+      - 'FrontEnd/**'
+      - '.github/workflows/azure-static-web-apps-happy-hill-0c2cd1800.yml'
   pull_request:
     types: [opened, synchronize, reopened, closed]
-    branches:
-      - main
+    branches: [ main ]
+    paths:
+      - 'FrontEnd/**'
+      - '.github/workflows/azure-static-web-apps-happy-hill-0c2cd1800.yml'
 
 jobs:
   build_and_deploy_job:
@@ -44,3 +48,4 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_HAPPY_HILL_0C2CD1800 }}
           action: "close"
+

@@ -5,11 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Resume — Zoltan Olasz</title>
   <meta name="description" content="Modern responsive resume for Zoltan Olasz" />
-  <!-- Color scheme + theme color for better address bar styling -->
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)">
-  <!-- Preconnect to font hosts for faster paints -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
@@ -143,7 +141,7 @@
                   <li>Monitored support queues and the prioritisation of incidents according to predefined criteria.</li>
                   <li>Contributed to the planning, development, design and deployment phases of IT projects.</li>
                   <li>Led root cause analysis to identify issues, developing troubleshooting environments to deploy multiple versions of software simultaneously, and provided advice and guidance to development teams. </li>
-                <ul>
+                </ul>
               </div>
             </article>
 
@@ -159,7 +157,7 @@
                   <li>Monitored alerts and events from monitoring tools including Microsoft's SCOM, in-house monitoring systems, third- party applications and other specialist systems. </li>
                   <li>Led investigations, troubleshooting, problem solving and escalations across events, alerts and reported issues to achieve and maintain company service levels, up-time and resolution performance metrics.</li>
                   <li>Maintained and updated F5 configurations, including the management of iRules and policies to optimise load balancing and traffic management</li>
-                <ul>
+                </ul>
               </div>
             </article>
           </div>
@@ -177,7 +175,7 @@
 
         <section class="section" aria-label="Other qualifications">
           <h2 class="h">Other Qualifications</h2>
-            <ul class="muted">
+            <ul class="muted bullets">
               <li>ISC2 CC Certified in Cybersecurity</li>
               <li>Microsoft Certified: Azure Fundamentals</li>
               <li>CISCO Certified Network Associate (Routing and Switching)</li>
@@ -188,89 +186,13 @@
             </ul>
         </section>
 
-        <section class="section" aria-label="Hobbies">
-          <h2 class="h">Hobbies</h2>
-          <div class="chips" role="list">
-            <span class="chip" role="listitem">🏄‍♂️ Surfing</span>
-            <span class="chip" role="listitem">🏋️‍♀️ Kettlebells</span>
-            <span class="chip" role="listitem">🎸 Music</span>
-          </div>
-        </section>
-
         <section class="section no-print" aria-label="Actions">
-          <button class="btn" type="button" onclick="window.print()">🖨️ Print / Save as PDF</button>
+          <button class="btn" type="button" id="print-btn">🖨️ Print / Save as PDF</button>
         </section>
       </main>
     </div>
   </div>
 
-  <script defer>
-  /* ====== CONFIG ====== */
-  const ENDPOINT = "https://counterapi-a5aeacedhma9ecev.australiasoutheast-01.azurewebsites.net/api/visit";
-  /*
-    INCREMENT_BEHAVIOR:
-    - "session": POST (inc 1) only once per browser tab session; otherwise GET
-    - "always" : POST every load
-    - "never"  : GET only (read-only)
-  */
-  const INCREMENT_BEHAVIOR = "session";
-  /* ==================== */
-
-  const elValue = document.getElementById("visit-value");
-  const elSub   = document.getElementById("visit-sub");
-  const elBtn   = document.getElementById("visit-refresh");
-
-  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  function countUp(el, from, to, ms=800){
-    if (prefersReducedMotion) { el.textContent = to.toLocaleString(); return; }
-    const start = performance.now();
-    const fmt = n => n.toLocaleString(undefined);
-    function frame(now){
-      const t = Math.min(1, (now - start)/ms);
-      const eased = t<.5 ? 2*t*t : -1 + (4 - 2*t)*t;
-      const val = Math.round(from + (to - from) * eased);
-      el.textContent = fmt(val);
-      if (t < 1) requestAnimationFrame(frame);
-    }
-    requestAnimationFrame(frame);
-  }
-
-  function shouldPost(){
-    if (INCREMENT_BEHAVIOR === "always") return true;
-    if (INCREMENT_BEHAVIOR === "never") return false;
-    // "session"
-    const KEY = "visitCounter.incremented";
-    const isPrerender = document.visibilityState === "prerender";
-    const isBot = /bot|crawl|spider|slurp|bingpreview/i.test(navigator.userAgent||"");
-    if (sessionStorage.getItem(KEY) || isPrerender || isBot) return false;
-    sessionStorage.setItem(KEY, "1");
-    return true;
-  }
-
-  async function fetchCount({forceGet=false}={}){
-    const method = (shouldPost() && !forceGet) ? "POST" : "GET";
-    const url = method === "POST" ? ENDPOINT + "?inc=1" : ENDPOINT;
-    try{
-      elSub.textContent = method === "POST" ? "Counting your visit…" : "Loading…";
-      const res = await fetch(url, { method, mode:"cors", cache:"no-store", headers:{ "Accept":"application/json" } });
-      if (!res.ok) throw new Error("HTTP "+res.status);
-      const data = await res.json();
-      const next = Number(data?.count ?? NaN);
-      if (!Number.isFinite(next)) throw new Error("Invalid count");
-      const current = Number(elValue.textContent.replace(/[^0-9]/g,"")) || 0;
-      elValue.classList.remove("skeleton");
-      countUp(elValue, current, next, 700);
-      elSub.textContent = "Last updated just now";
-    }catch(err){
-      console.error("visit counter error:", err);
-      elValue.textContent = "—";
-      elSub.textContent = "Couldn’t load counter";
-    }
-  }
-
-  elBtn?.addEventListener("click", () => fetchCount({forceGet:true}));
-  fetchCount();
-  </script>
+  <script src="main.js" defer></script>
 </body>
 </html>

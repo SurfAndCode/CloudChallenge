@@ -1,17 +1,23 @@
-/* ======= THEME TOKENS ======= */
+/* ===================================================================
+   ZOLTAN OLASZ — RESUME THEME
+   Cleaned & organized CSS (grouped by: tokens → base → layout → UI →
+   components → utilities → media → print)
+   =================================================================== */
+
+/* === TOKENS ======================================================= */
 :root{
-  /* Brand theming */
+  /* Brand & color system */
   --accent:       #0ea5e9;    /* sky-500 */
   --accent-600:   #0284c7;    /* sky-600 */
-  --bg:           #0b1220;
-  --card:         #0f172a;
+  --bg:           #060a12;    /* darker page background */
+  --card:         #0a1324;    /* darker cards */
   --muted:        #94a3b8;
-  --text:         #e5e7eb;
+  --text:         #e6e9ee;    /* slightly lighter text for contrast */
   --ring:         rgba(14,165,233,.35);
   --radius:       18px;
+
   color-scheme: light dark;
 }
-
 @media (prefers-color-scheme: light){
   :root{
     --bg:   #f3f4f6;
@@ -22,22 +28,24 @@
   }
 }
 
+/* === BASE ========================================================= */
 *{ box-sizing:border-box }
 html,body{ height:100% }
 body{
   margin:0;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
   background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(14,165,233,.15), transparent),
-    radial-gradient(900px 500px at 110% 10%, rgba(99,102,241,.12), transparent),
+    radial-gradient(1200px 800px at 20% 10%, rgba(124,92,255,.18), transparent 50%),
+    radial-gradient(1200px 800px at 90% 90%, rgba(35,196,255,.18), transparent 50%),
     var(--bg);
   color:var(--text);
   line-height:1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+img, svg, video{ max-width:100%; height:auto; }
 
-/* Page grid */
+/* === LAYOUT ======================================================= */
 .page{ padding: clamp(16px, 3vw, 32px); }
 .resume{
   max-width: 1100px;
@@ -46,10 +54,10 @@ body{
   gap: clamp(18px, 2vw, 28px);
   grid-template-columns: 1fr; /* mobile-first */
 }
-
-/* Desktop: two columns */
 @media (min-width: 900px){
   .resume{ grid-template-columns: 320px 1fr; align-items: start; }
+  .sidebar.card{ grid-column: 1/2 }
+  .content.card{ grid-column: 2/3 }
 }
 
 .card{
@@ -57,36 +65,29 @@ body{
   border-radius: var(--radius);
   box-shadow: 0 10px 30px -10px rgba(0,0,0,.35);
   border: 1px solid rgba(148,163,184,.15);
-  overflow: hidden; /* fallback for overflow: clip */
   overflow: clip;
   content-visibility: auto;
   contain-intrinsic-size: 600px;
 }
 
-/* Sidebar */
+/* === SIDEBAR ====================================================== */
 .sidebar{ position: sticky; top: clamp(12px, 2vh, 24px); align-self: start }
 .sidebar .top{
   padding: 28px 24px 22px;
   background: linear-gradient(180deg, rgba(14,165,233,.12), transparent 60%);
 }
-
 .avatar{
-  width: 108px; height:108px; border-radius: 50%;
+  width: 140px; height:140px; /* centered & larger */
+  margin-inline: auto;
+  border-radius: 50%;
   overflow: hidden; border: 3px solid rgba(255,255,255,.12);
   box-shadow: 0 10px 30px -12px rgba(14,165,233,.55);
 }
 .avatar img{ width:100%; height:100%; object-fit: cover }
-
 .name{ font: 700 clamp(1.25rem, .9rem + 1.6vw, 1.9rem) Montserrat, Inter, sans-serif; margin:16px 0 2px }
 .role{ color: var(--muted); margin-top:2px; font-weight:600 }
 
-.contact{ padding: 0 24px 20px }
-.contact ul{ list-style:none; margin: 16px 0 0; padding:0; display:grid; gap:10px }
-.contact li{ display:flex; gap:10px; align-items: start }
-.contact li::before{ content: attr(data-emoji); font-size: 1.15rem; line-height:1.2 }
-.contact a{ color: inherit; text-decoration: none }
-.contact a:hover, .contact a:focus-visible{ color: var(--accent); outline: none }
-
+/* === SECTIONS / TYPOGRAPHY ======================================= */
 .section{ padding: 24px }
 .section + .section{ border-top: 1px dashed rgba(148,163,184,.2) }
 .h{
@@ -99,6 +100,16 @@ body{
   background: rgba(14,165,233,.12); border:1px solid rgba(14,165,233,.25);
   padding:.2rem .55rem; border-radius:999px
 }
+.about p{ margin: .25rem 0 0; color: var(--muted); max-inline-size: 72ch; }
+
+/* Contact */
+.contact{ padding: 0 24px 20px }
+.contact ul{ list-style:none; margin: 16px 0 0; padding:0; display:grid; gap:10px }
+.contact li{ display:flex; gap:10px; align-items: start }
+.contact li::before{ content: attr(data-emoji); font-size: 1.15rem; line-height:1.2 }
+.contact a{ color: inherit; text-decoration: none }
+.contact a:hover, .contact a:focus-visible{ color: var(--accent); outline: none }
+.contact a{ overflow-wrap:anywhere; word-break: break-word; }
 
 /* Skills */
 .skills{ display:grid; gap:10px; margin-top:12px }
@@ -124,76 +135,12 @@ body{
 .title{ font-weight:700 }
 .org{ color: var(--muted); font-weight:600 }
 
-/* Main content */
+/* Main content layout */
 .content{ display:grid; gap: clamp(18px, 2vw, 24px) }
-.about p{ margin: .25rem 0 0; color: var(--muted); max-inline-size: 72ch; }
 
-/* Desktop layout specifics */
-@media (min-width: 900px){
-  .sidebar.card{ grid-column: 1/2 }
-  .content.card{ grid-column: 2/3 }
-}
-
-/* Print-friendly tweaks */
-@media print{
-  body{ background:#fff }
-  .page{ padding:0 }
-  .card{ box-shadow:none; border-color:#e5e7eb }
-  .sidebar{ position:static }
-  .contact a{ color: inherit; text-decoration: underline }
-  .no-print{ display:none !important }
-}
-
-/* Small helpers */
-.muted{ color: var(--muted) }
-.spacer{ height: 4px }
-.btn{
-  display:inline-flex; align-items:center; gap:.6ch; padding:.6rem .9rem;
-  border-radius: 12px; border:1px solid rgba(148,163,184,.2);
-  background: rgba(148,163,184,.08); color:inherit; text-decoration:none;
-  font-weight:600; box-shadow: 0 6px 16px -12px rgba(14,165,233,.8);
-}
-.btn:hover, .btn:focus-visible{ border-color: rgba(14,165,233,.4); outline: none }
-
-/* Accessibility focus ring */
-:where(a, button):focus-visible{
-  outline: 3px solid var(--ring);
-  outline-offset: 2px;
-  border-radius: 10px;
-}
-
-/* 1) Turn off sticky sidebar on mobile so main content scrolls naturally */
-@media (max-width: 899px){
-  .sidebar{ position: static; top:auto; }
-}
-
-/* 2) Make skill rows wrap cleanly on narrow screens */
-@media (max-width: 520px){
-  .skill{
-    grid-template-columns: 1fr max-content;
-    grid-template-areas:
-      "name pct"
-      "meter meter";
-  }
-  .skill-name{ grid-area: name; }
-  .meter{ grid-area: meter; }
-  .pct{ grid-area: pct; }
-}
-
-/* 3) Prevent horizontal overflow from long links/media */
-img, svg, video{ max-width:100%; height:auto; }
-.contact a{ overflow-wrap:anywhere; word-break: break-word; }
-
-/* ===== Visitor Counter (kept, but theme unified) ===== */
-.counter-bg{
-  background:
-    radial-gradient(1200px 800px at 20% 10%, rgba(124,92,255,.18), transparent 50%),
-    radial-gradient(1200px 800px at 90% 90%, rgba(35,196,255,.18), transparent 50%),
-    var(--bg);
-}
-
+/* === VISITOR COUNTER ============================================= */
 .counter-card{
-  width:min(92vw, 420px);
+  width: 100%; /* fill the sidebar */
   background: linear-gradient(180deg, color-mix(in oklab, var(--card), #000 10%), var(--card));
   border: 1px solid color-mix(in oklab, var(--card), #fff 12%);
   border-radius: 18px;
@@ -204,12 +151,8 @@ img, svg, video{ max-width:100%; height:auto; }
   color: var(--text);
   font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
 }
-/* Fallback when color-mix isn't supported */
 @supports not (color: color-mix(in oklab, #000, #fff)){
-  .counter-card{
-    background: var(--card);
-    border: 1px solid rgba(148,163,184,.2);
-  }
+  .counter-card{ background: var(--card); border: 1px solid rgba(148,163,184,.2); }
 }
 .counter-card::after{
   content:""; position:absolute; inset:-40% -20% auto -20%; height:160px;
@@ -217,7 +160,6 @@ img, svg, video{ max-width:100%; height:auto; }
   transform: rotate(-6deg);
   filter: blur(20px); pointer-events:none;
 }
-
 .row{display:flex; align-items:center; gap:14px;}
 .badge{
   font-size:12px; letter-spacing:.08em; text-transform:uppercase;
@@ -243,7 +185,6 @@ img, svg, video{ max-width:100%; height:auto; }
   0%,100%{ transform:scale(.9); opacity:.75}
   50%{ transform:scale(1.15); opacity:1}
 }
-
 .skeleton{
   display:inline-block; width:8ch; height:1em; border-radius:6px;
   background: linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,.18), rgba(255,255,255,.08));
@@ -251,16 +192,9 @@ img, svg, video{ max-width:100%; height:auto; }
   animation: shimmer 1.2s linear infinite;
 }
 @keyframes shimmer{ to{ background-position: -200% 0; } }
-
-@media (prefers-reduced-motion: reduce){
-  .dot{ animation: none }
-  .skeleton{ animation: none }
-}
-
 .cta{ margin-top:14px; display:flex; gap:12px; align-items:center; justify-content:space-between; }
 .cta .tip{ font-size:12px; color:var(--muted); }
 .hidden{ display:none !important; }
-
 button.counter-refresh{
   appearance:none; border:1px solid color-mix(in oklab, var(--card), #fff 20%);
   background: color-mix(in oklab, var(--card), #000 6%); color:var(--text);
@@ -269,36 +203,55 @@ button.counter-refresh{
 button.counter-refresh:hover,
 button.counter-refresh:focus-visible{ border-color: rgba(14,165,233,.4); outline: none }
 
-/* Darker look */
-:root{
-  --bg:   #060a12;   /* darker page background */
-  --card: #0a1324;   /* darker cards */
-  --text: #e6e9ee;   /* slightly lighter text for contrast */
+/* === UTILITIES ==================================================== */
+.muted{ color: var(--muted) }
+.spacer{ height: 4px }
+.btn{
+  display:inline-flex; align-items:center; gap:.6ch; padding:.6rem .9rem;
+  border-radius: 12px; border:1px solid rgba(148,163,184,.2);
+  background: rgba(148,163,184,.08); color:inherit; text-decoration:none;
+  font-weight:600; box-shadow: 0 6px 16px -12px rgba(14,165,233,.8);
+}
+.btn:hover, .btn:focus-visible{ border-color: rgba(14,165,233,.4); outline: none }
+:where(a, button):focus-visible{
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 10px;
 }
 
-/* Center & enlarge avatar */
-.avatar{
-  width: 140px;
-  height: 140px;
-  margin-inline: auto;   /* centers the image in the sidebar */
+/* === MEDIA QUERIES ================================================ */
+/* Turn off sticky sidebar on mobile so main content scrolls naturally */
+@media (max-width: 899px){
+  .sidebar{ position: static; top:auto; }
+}
+/* Make skill rows wrap cleanly on narrow screens */
+@media (max-width: 520px){
+  .skill{
+    grid-template-columns: 1fr max-content;
+    grid-template-areas:
+      "name pct"
+      "meter meter";
+  }
+  .skill-name{ grid-area: name; }
+  .meter{ grid-area: meter; }
+  .pct{ grid-area: pct; }
 }
 
-/* Make the visitor counter as wide as the sidebar card */
-.sidebar .counter-card{
-  width: 100%;           /* fill the sidebar */
-  margin: 0;             /* remove the fixed/narrow width & margins */
-}
+/* === ALIGNMENTS / SPECIAL CASES ================================== */
+:root{ --axis: 22px; } /* same indent used by .item */
+section[aria-label="Education"] .timeline{ margin-left: 0; }
+section[aria-label="Education"] .timeline .item{ padding-left: 0; margin-left: var(--axis); }
+section[aria-label="Education"] .timeline .item::before,
+section[aria-label="Education"] .timeline .item::after{ display: none; }
 
-/* ==== Align Education & Other Qualifications with Work Experience ==== */
-.bullets{
-  list-style: disc outside;
-  padding-left: 22px;   /* matches .item’s left pad in the timeline */
-  margin: 8px 0 0;
+section[aria-label="Other qualifications"] .bullets{
+  margin-left: var(--axis);
+  padding-left: 0;
+  list-style-position: outside;
 }
-.bullets li{ color: var(--muted); line-height: 1.6 }
+section[aria-label="Other qualifications"] ul{ margin-left: 22px; }
 
-/* ==== Uniform text color in main content (user request) ==== */
-/* Make all main-content text white; keep dates blue via .date rule above */
+/* Force consistent text color in main content as requested */
 .content p,
 .content li,
 .content .org,
@@ -309,29 +262,12 @@ button.counter-refresh:focus-visible{ border-color: rgba(14,165,233,.4); outline
 .content .title,
 .content .text { color: var(--text) !important; }
 
-/* Ensure bullets in "Other Qualifications" are white too */
-.bullets li{ color: var(--text) !important; }
-
-/* ==== Align Education & Other Qualifications with Work Experience text column ==== */
-:root{ --axis: 22px; } /* same indent used by .item */
-
-/* Education: remove timeline dot/line, keep text aligned to content column */
-section[aria-label="Education"] .timeline{ margin-left: 0; }
-section[aria-label="Education"] .timeline .item{
-  padding-left: 0;
-  margin-left: var(--axis);
-}
-section[aria-label="Education"] .timeline .item::before,
-section[aria-label="Education"] .timeline .item::after{ display: none; }
-
-/* Other Qualifications: align list to the same content column */
-section[aria-label="Other qualifications"] .bullets{
-  margin-left: var(--axis);
-  padding-left: 0;
-  list-style-position: outside;
-}
-
-/* Align "Other Qualifications" bullets with Work Experience bullets */
-section[aria-label="Other qualifications"] ul{ 
-  margin-left: 22px; 
+/* === PRINT ======================================================== */
+@media print{
+  body{ background:#fff }
+  .page{ padding:0 }
+  .card{ box-shadow:none; border-color:#e5e7eb }
+  .sidebar{ position:static }
+  .contact a{ color: inherit; text-decoration: underline }
+  .no-print{ display:none !important }
 }

@@ -1,0 +1,12 @@
+{
+  "name": "api-smoke-cypress",
+  "private": true,
+  "devDependencies": {
+    "cypress": "^13.13.0"
+  },
+  "scripts": {
+    "test": "cypress run",
+    "test:smoke": "cypress run --spec 'cypress/e2e/smoke/**/*.cy.*'",
+    "cypress:open": "cypress open"
+  }
+}

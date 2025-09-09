@@ -4,7 +4,7 @@ on:
   push:
     branches: ["**"]
     paths:
-      - "BackEnd/**"                 
+      - "BackEnd/**"                       
       - "Smoke/**"
       - ".github/workflows/cypress-api-smoke.yml"
   pull_request:
@@ -14,33 +14,42 @@ on:
       - "Smoke/**"
       - ".github/workflows/cypress-api-smoke.yml"
 
-concurrency:
-  group: cypress-smoke-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
       run:
-        working-directory: smoke
+        working-directory: Smoke
     steps:
       - uses: actions/checkout@v4
+
+      # Always install Node so npm is available (no cache here)
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: smoke/package-lock.json
+
+      # Install deps (use ci if lockfile is present, otherwise install)
       - name: Install deps
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Verify tools (debug)
+        run: |
+          node -v
+          npm -v
+
       - name: Verify Cypress
         run: npx cypress verify
+
       - name: Run Cypress (API smoke)
         run: npx cypress run --spec "cypress/e2e/smoke/**/*.cy.*"
         env:
           CYPRESS_BASE_URL: https://counterapi-a5aeacedhma9ecev.australiasoutheast-01.azurewebsites.net
-          # Optional overrides:
+          # Optional:
           # CYPRESS_HEALTH_PATH: /api/health
-          # For PRs you might set this to false via env or a job condition:
-          # CYPRESS_ALLOW_MUTATION: "false"
+          # CYPRESS_ALLOW_MUTATION: "false"   # skip POST increments on PRs

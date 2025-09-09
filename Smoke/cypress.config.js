@@ -7,6 +7,7 @@ module.exports = defineConfig({
     video: false,
     defaultCommandTimeout: 8000,
     requestTimeout: 8000,
+    supportFile: false,
     setupNodeEvents(on, config) {
       config.env.HEALTH_PATH = process.env.CYPRESS_HEALTH_PATH || config.env.HEALTH_PATH || "/api/health";
       config.env.ALLOW_MUTATION = (process.env.CYPRESS_ALLOW_MUTATION || "true").toLowerCase() === "true";

@@ -5,7 +5,7 @@
 
 (() => {
   // ====== CONFIG ======
-  const ENDPOINT = "https://counterapi-a5aeacedhma9ecev.australiasoutheast-01.azurewebsites.net/api/visit";
+  const ENDPOINT = "https://counterapi-a5aeacedhma9ecev.australiasoutheast-01.azurewebsites.net/visit";
 
   /*
     INCREMENT_BEHAVIOR:

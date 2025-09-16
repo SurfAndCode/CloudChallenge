@@ -17,7 +17,7 @@ def _get_container():
     else:
         client = CosmosClient(
             os.environ["COSMOS_ENDPOINT"],
-            credential=os.environ["COSMOS_KEY"],
+            credential=os.environ["COSMOS_KEY"]
         )
     db = client.get_database_client(os.getenv("COSMOS_DATABASE", "ClickCounter"))
     return db.get_container_client(os.getenv("COSMOS_CONTAINER", "Counts"))

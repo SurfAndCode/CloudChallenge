@@ -1,5 +1,5 @@
 // Visit counter semantics
-const PATH = "/api/visit";
+const PATH = "/visit";
 const allowMutation = Cypress.env("ALLOW_MUTATION");
 
 const expectJson = (res) => {

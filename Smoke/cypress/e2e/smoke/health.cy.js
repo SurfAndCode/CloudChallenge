@@ -1,5 +1,5 @@
 // Health check: expects { ok: true }
-const HEALTH_PATH = Cypress.env("HEALTH_PATH") || "/api/health";
+const HEALTH_PATH = Cypress.env("HEALTH_PATH") || "/health";
 
 describe("Health", () => {
   it("GET returns 200 + JSON { ok: true }", () => {

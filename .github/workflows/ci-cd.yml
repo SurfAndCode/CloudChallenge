@@ -171,7 +171,20 @@ jobs:
         with:
           node-version: '20'
       - name: Install deps
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install --no-audit --no-fund
+          fi
+      - name: Verify tools (debug)
+        run: |
+          node -v
+          npm -v
+
+      - name: Verify Cypress
+        run: npx cypress verify
+        
       - name: Run Cypress smoke
         uses: cypress-io/github-action@v6
         with:

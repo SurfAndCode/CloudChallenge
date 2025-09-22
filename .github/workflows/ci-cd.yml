@@ -162,7 +162,6 @@ jobs:
       run:
         working-directory: Smoke
     env:
-      CYPRESS_baseUrl: ${{ needs.deploy_dev.outputs.swa }}
       CYPRESS_apiBaseUrl: ${{ needs.deploy_dev.outputs.api }}
     steps:
       - uses: actions/checkout@v4
@@ -184,6 +183,9 @@ jobs:
 
       - name: Verify Cypress
         run: npx cypress verify
+
+      - name: Debug API URL
+        run: echo "API -> ${{ env.CYPRESS_apiBaseUrl }}"
         
       - name: Run Cypress smoke
         uses: cypress-io/github-action@v6

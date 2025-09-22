@@ -86,6 +86,9 @@ jobs:
     name: Deploy to DEV (Functions + SWA)
     runs-on: ubuntu-latest
     needs: [build_functions]
+    outputs:
+      swa: ${{ steps.dev_out.outputs.swa }} 
+      api: ${{ steps.dev_out.outputs.api }}
     steps:
       - uses: actions/checkout@v4
 
@@ -118,6 +121,7 @@ jobs:
       - name: Deploy SWA (DEV)
         uses: Azure/static-web-apps-deploy@v1
         with:
+          action: upload
           azure_static_web_apps_api_token: ${{ secrets.SWA_TOKEN_DEV }}
           app_location: ${{ env.SWA_APP_LOCATION }}
           output_location: ${{ env.SWA_OUTPUT_LOCATION }}
@@ -131,6 +135,16 @@ jobs:
           FUNC_HOST=$(az functionapp show -g "${{ env.FUNCTIONAPP_RG_DEV }}" -n "${{ env.FUNCTIONAPP_NAME_DEV }}" --query defaultHostName -o tsv)
           echo "swa=https://${SWA_HOST}"   >> $GITHUB_OUTPUT
           echo "api=https://${FUNC_HOST}"  >> $GITHUB_OUTPUT
+      - name: Close SWA preview (on PR close)
+        if: github.event_name == 'pull_request' && github.event.action == 'closed'
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          action: close
+          azure_static_web_apps_api_token: ${{ secrets.SWA_TOKEN_DEV }}
+          app_location: ${{ env.SWA_APP_LOCATION }}
+          output_location: ${{ env.SWA_OUTPUT_LOCATION }}
+          production_branch: main
+        
 
   smoke_dev:
     name: Smoke test DEV (Cypress)
@@ -196,6 +210,7 @@ jobs:
       - name: Deploy SWA (PROD)
         uses: Azure/static-web-apps-deploy@v1
         with:
+          action: upload
           azure_static_web_apps_api_token: ${{ secrets.SWA_TOKEN_PROD }}
           app_location: ${{ env.SWA_APP_LOCATION }}
           output_location: ${{ env.SWA_OUTPUT_LOCATION }}

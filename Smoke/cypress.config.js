@@ -3,7 +3,7 @@ const { defineConfig } = require("cypress");
 module.exports = defineConfig({
   e2e: {
     env: {
-      apiBaseUrl: process.env.CYPRESS_apiBaseUrl || ''
+      BaseUrl: process.env.CYPRESS_apiBaseUrl || ''
     },
     specPattern: "cypress/e2e/**/*.cy.{js,ts}",
     video: false,

@@ -2,7 +2,7 @@ const { defineConfig } = require("cypress");
 
 module.exports = defineConfig({
   e2e: {
-    baseUrl: process.env.CYPRESS_BASE_URL || "https://counterapi-a5aeacedhma9ecev.australiasoutheast-01.azurewebsites.net",
+    baseUrl: process.env.CYPRESS_BASE_URL || "https://cloudchallenge-dev-func.azurewebsites.net",
     specPattern: "cypress/e2e/**/*.cy.{js,ts}",
     video: false,
     defaultCommandTimeout: 8000,

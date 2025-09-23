@@ -12,10 +12,7 @@
       : ''
     ).replace(/\/+$/, ''); // trim trailing /
 
-  // Fallbacks (optional): if you ever link a backend to SWA, relative /api works.
-  // Otherwise, keep PROD as last-resort only so dev never accidentally uses it.
-  const PROD_DEFAULT = "https://counterapi-a5aeacedhma9ecev.australiasoutheast-01.azurewebsites.net";
-  const ENDPOINT = (API_BASE ? `${API_BASE}/visit` : `${PROD_DEFAULT}/visit`);
+  const ENDPOINT = API_BASE ? `${API_BASE}/visit` : null;
 
   /*
     INCREMENT_BEHAVIOR:
@@ -72,6 +69,12 @@
 
   async function fetchCount({forceGet=false}={}){
     try{
+      if (!ENDPOINT) {
+          console.warn('Counter API not configured: window.__APP_CONFIG__.apiBase missing');
+            elValue.textContent = '—';
+             elSub.textContent = 'Counter unavailable (no API configured)';
+             return;
+      }
       let method = "GET";
       if (!EASY_MODE) {
         method = (shouldPost() && !forceGet) ? "POST" : "GET";

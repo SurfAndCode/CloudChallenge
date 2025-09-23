@@ -5,7 +5,17 @@
 
 (() => {
   // ====== CONFIG ======
-  const ENDPOINT = "https://counterapi-a5aeacedhma9ecev.australiasoutheast-01.azurewebsites.net/visit";
+  // Highest priority: runtime-configured API base (stamped by CI)
+  const API_BASE =
+    (window.__APP_CONFIG__ && typeof window.__APP_CONFIG__.apiBase === 'string'
+      ? window.__APP_CONFIG__.apiBase
+      : ''
+    ).replace(/\/+$/, ''); // trim trailing /
+
+  // Fallbacks (optional): if you ever link a backend to SWA, relative /api works.
+  // Otherwise, keep PROD as last-resort only so dev never accidentally uses it.
+  const PROD_DEFAULT = "https://counterapi-a5aeacedhma9ecev.australiasoutheast-01.azurewebsites.net";
+  const ENDPOINT = (API_BASE ? `${API_BASE}/api/visit` : `${PROD_DEFAULT}/api/visit`);
 
   /*
     INCREMENT_BEHAVIOR:

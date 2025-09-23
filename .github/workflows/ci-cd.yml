@@ -122,6 +122,12 @@ jobs:
           az functionapp cors remove -g "${{ env.FUNCTIONAPP_RG_DEV }}" -n "${{ env.FUNCTIONAPP_NAME_DEV }}" --allowed-origins '*' || true
           az functionapp cors add    -g "${{ env.FUNCTIONAPP_RG_DEV }}" -n "${{ env.FUNCTIONAPP_NAME_DEV }}" --allowed-origins "https://${SWA_HOST}" "${{ env.SITE_URL_DEV }}"
 
+      - name: Stamp DEV API base into appconfig.js
+        shell: bash
+        run: |
+          API_HOST=$(az functionapp show -g "${{ env.FUNCTIONAPP_RG_DEV }}" -n "${{ env.FUNCTIONAPP_NAME_DEV }}" --query defaultHostName -o tsv)
+          echo "window.__APP_CONFIG__={apiBase:'https://${API_HOST}'};" > FrontEnd/appconfig.js
+
       - name: Deploy SWA (DEV) — static files, no build
         # Avoid failing on fork PRs where secrets aren't available:
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
@@ -226,6 +232,12 @@ jobs:
           SWA_HOST=$(az staticwebapp show -g "${{ env.FUNCTIONAPP_RG_PROD }}" -n "${{ env.SWA_NAME_PROD }}" --query defaultHostname -o tsv)
           az functionapp cors remove -g "${{ env.FUNCTIONAPP_RG_PROD }}" -n "${{ env.FUNCTIONAPP_NAME_PROD }}" --allowed-origins '*' || true
           az functionapp cors add    -g "${{ env.FUNCTIONAPP_RG_PROD }}" -n "${{ env.FUNCTIONAPP_NAME_PROD }}" --allowed-origins "https://${SWA_HOST}" "${{ env.SITE_URL_PROD }}"
+
+      - name: Stamp PROD API base into appconfig.js
+        shell: bash
+        run: |
+          API_HOST=$(az functionapp show -g "${{ env.FUNCTIONAPP_RG_PROD }}" -n "${{ env.FUNCTIONAPP_NAME_PROD }}" --query defaultHostName -o tsv)
+          echo "window.__APP_CONFIG__={apiBase:'https://${API_HOST}'};" > FrontEnd/appconfig.js
 
       - name: Deploy SWA (PROD) — static files, no build
         uses: Azure/static-web-apps-deploy@v1

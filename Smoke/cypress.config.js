@@ -1,19 +1,30 @@
-const { defineConfig } = require("cypress");
+// Smoke/cypress.config.js
+const { defineConfig } = require('cypress')
 
 module.exports = defineConfig({
   e2e: {
+    // <- THIS is what cy.request('/api/...') uses
+    baseUrl:
+      process.env.CYPRESS_apiBaseUrl ||      // camelCase (what your job sets)
+      process.env.CYPRESS_BASE_URL   ||      // uppercase fallback
+      '',
+
     env: {
-      baseUrl: process.env.CYPRESS_apiBaseUrl || ''
+      healthPath: process.env.CYPRESS_HEALTH_PATH || '/health',
+      functionKey: process.env.CYPRESS_functionKey || '',
     },
-    specPattern: "cypress/e2e/**/*.cy.{js,ts}",
+
+    specPattern: 'cypress/e2e/**/*.cy.{js,ts}',
     video: false,
     defaultCommandTimeout: 8000,
     requestTimeout: 8000,
     supportFile: false,
+
     setupNodeEvents(on, config) {
-      config.env.HEALTH_PATH = process.env.CYPRESS_HEALTH_PATH || config.env.HEALTH_PATH || "/health";
-      config.env.ALLOW_MUTATION = (process.env.CYPRESS_ALLOW_MUTATION || "true").toLowerCase() === "true";
-      return config;
+      if (!config.baseUrl) {
+        throw new Error('CYPRESS_apiBaseUrl (or CYPRESS_BASE_URL) not set — baseUrl is required')
+      }
+      return config
     },
   },
-});
+})

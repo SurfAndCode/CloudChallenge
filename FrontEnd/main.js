@@ -15,7 +15,7 @@
   // Fallbacks (optional): if you ever link a backend to SWA, relative /api works.
   // Otherwise, keep PROD as last-resort only so dev never accidentally uses it.
   const PROD_DEFAULT = "https://counterapi-a5aeacedhma9ecev.australiasoutheast-01.azurewebsites.net";
-  const ENDPOINT = (API_BASE ? `${API_BASE}/api/visit` : `${PROD_DEFAULT}/api/visit`);
+  const ENDPOINT = (API_BASE ? `${API_BASE}/visit` : `${PROD_DEFAULT}/visit`);
 
   /*
     INCREMENT_BEHAVIOR:

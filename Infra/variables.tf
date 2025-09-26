@@ -38,13 +38,13 @@ variable "swa_location" {
 variable "cosmos_free_tier" {
   description = "Enable Cosmos DB Free Tier (cannot be true if cosmos_serverless is also true)."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "cosmos_serverless" {
   description = "Enable Cosmos DB Serverless (cannot be true if cosmos_free_tier is also true)."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "cosmos_db_name" {

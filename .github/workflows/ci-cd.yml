@@ -94,6 +94,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
+      - name: Break leftover state lease (DEV)
+        run: az storage blob lease break --account-name cctfstatestorage --container-name tfstate --blob cloudchallenge/dev.tfstate --auth-mode login || true
       - name: Init DEV state
         run: terraform init -input=false -reconfigure -backend-config="key=cloudchallenge/dev.tfstate"
       - run: terraform validate

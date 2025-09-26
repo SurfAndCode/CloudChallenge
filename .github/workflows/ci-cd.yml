@@ -97,30 +97,8 @@ jobs:
       - name: Init DEV state
         run: terraform init -input=false -reconfigure -backend-config="key=cloudchallenge/dev.tfstate"
       - run: terraform validate
-      - name: Plan (DEV) with auto-unlock
-        shell: bash
-        run: |
-          set -euo pipefail
-          run_plan() {
-            terraform plan -no-color -input=false -lock-timeout=10m -var-file=env/dev.tfvars -out=tfplan
-          }
-          LOG=$(mktemp)
-          if run_plan |& tee "$LOG"; then
-            exit 0
-          fi
-          if grep -q "state blob is already locked" "$LOG"; then
-            LOCK_ID=$(grep -E "^\s*ID:\s*[0-9a-f-]+" "$LOG" | head -1 | awk -F': ' '{print $2}' | tr -d '\r')
-            if [ -n "${LOCK_ID:-}" ]; then
-              echo "Detected stale lock: $LOCK_ID — forcing unlock..."
-              terraform force-unlock -force "$LOCK_ID" || true
-              # one retry
-              run_plan
-            else
-              echo "Could not extract LOCK_ID from Terraform output"; exit 1
-            fi
-          else
-            echo "Plan failed for another reason"; cat "$LOG"; exit 1
-          fi
+      - name: Plan (DEV)
+        run: terraform plan -input=false -lock=false -var-file=env/dev.tfvars -out=tfplan
       - name: Apply (DEV)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: terraform apply -input=false -auto-approve tfplan
@@ -161,29 +139,8 @@ jobs:
       - name: Init PROD state
         run: terraform init -input=false -reconfigure -backend-config="key=cloudchallenge/prod.tfstate"
       - run: terraform validate
-      - name: Plan (PROD) with auto-unlock
-        shell: bash
-        run: |
-          set -euo pipefail
-          run_plan() {
-            terraform plan -no-color -input=false -lock-timeout=10m -var-file=env/prod.tfvars -out=tfplan
-          }
-          LOG=$(mktemp)
-          if run_plan |& tee "$LOG"; then
-            exit 0
-          fi
-          if grep -q "state blob is already locked" "$LOG"; then
-            LOCK_ID=$(grep -E "^\s*ID:\s*[0-9a-f-]+" "$LOG" | head -1 | awk -F': ' '{print $2}' | tr -d '\r')
-            if [ -n "${LOCK_ID:-}" ]; then
-              echo "Detected stale lock: $LOCK_ID — forcing unlock..."
-              terraform force-unlock -force "$LOCK_ID" || true
-              run_plan
-            else
-              echo "Could not extract LOCK_ID from Terraform output"; exit 1
-            fi
-          else
-            echo "Plan failed for another reason"; cat "$LOG"; exit 1
-          fi
+      - name: Plan (PROD)
+        run: terraform plan -input=false -lock=false -var-file=env/prod.tfvars -out=tfplan
       - name: Apply (PROD)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: terraform apply -input=false -auto-approve tfplan

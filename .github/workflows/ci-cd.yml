@@ -101,7 +101,7 @@ jobs:
         run: terraform plan -input=false -lock=false -var-file=env/dev.tfvars -out=tfplan
       - name: Apply (DEV)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: terraform apply -input=false -auto-approve tfplan
+        run: terraform apply -input=false -lock=false -auto-approve tfplan
       - name: Export DEV outputs
         id: tf_out_dev
         run: |

@@ -161,7 +161,6 @@ jobs:
       - name: Init PROD state
         run: terraform init -input=false -reconfigure -backend-config="key=cloudchallenge/prod.tfstate"
       - run: terraform validate
-      - name: Plan (PROD)
       - name: Plan (PROD) with auto-unlock
         shell: bash
         run: |

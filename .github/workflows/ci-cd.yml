@@ -24,17 +24,17 @@ permissions:
   contents: read
 
 env:
-  # Code layout only (infra names come from Terraform outputs)
+  # Code layout (infra names come from Terraform outputs)
   FUNCTIONS_DIR: BackEnd
   STATIC_DIR: FrontEnd
 
 concurrency:
-  group: swa-deploy
+  group: cloudchallenge
   cancel-in-progress: true
 
 jobs:
   # =========================
-  # 1) Build Functions ZIP
+  # 0) Build Functions ZIP (can run while infra_dev runs)
   # =========================
   build_functions:
     name: Build Functions zip (Python v2)
@@ -78,10 +78,11 @@ jobs:
           if-no-files-found: error
 
   # =========================
-  # 2) Terraform: DEV infra
+  # 1) Terraform: DEV infra
   # =========================
   infra_dev:
     name: Terraform (DEV)
+    environment: dev
     runs-on: ubuntu-latest
     permissions: { id-token: write, contents: read }
     defaults: { run: { working-directory: Infra } }
@@ -94,16 +95,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
-      - name: Break leftover state lease (DEV)
-        run: az storage blob lease break --account-name cctfstatestorage --container-name tfstate --blob cloudchallenge/dev.tfstate --auth-mode login || true
+
       - name: Init DEV state
         run: terraform init -input=false -reconfigure -backend-config="key=cloudchallenge/dev.tfstate"
-      - run: terraform validate
+
+      - name: Validate
+        run: terraform validate
+
+      # Simple tweak: -lock=false on plan to avoid stale lock during planning
       - name: Plan (DEV)
         run: terraform plan -input=false -lock=false -var-file=env/dev.tfvars -out=tfplan
+
       - name: Apply (DEV)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: terraform apply -input=false -lock=false -auto-approve tfplan
+        run: terraform apply -input=false -auto-approve tfplan
+
       - name: Export DEV outputs
         id: tf_out_dev
         run: |
@@ -122,52 +128,11 @@ jobs:
       site_url:  ${{ steps.tf_out_dev.outputs.site_url }}
 
   # =========================
-  # 3) Terraform: PROD infra (parallel)
-  # =========================
-  infra_prod:
-    name: Terraform (PROD)
-    runs-on: ubuntu-latest
-    permissions: { id-token: write, contents: read }
-    defaults: { run: { working-directory: Infra } }
-    env:
-      TF_IN_AUTOMATION: "1"
-      ARM_USE_OIDC: "true"
-      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
-      - name: Init PROD state
-        run: terraform init -input=false -reconfigure -backend-config="key=cloudchallenge/prod.tfstate"
-      - run: terraform validate
-      - name: Plan (PROD)
-        run: terraform plan -input=false -lock=false -var-file=env/prod.tfvars -out=tfplan
-      - name: Apply (PROD)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: terraform apply -input=false -auto-approve tfplan
-      - name: Export PROD outputs
-        id: tf_out_prod
-        run: |
-          echo "rg=$(terraform output -raw rg_name)"                                  >> $GITHUB_OUTPUT
-          echo "func_name=$(terraform output -raw function_app_name)"                 >> $GITHUB_OUTPUT
-          echo "swa_name=$(terraform output -raw swa_name)"                           >> $GITHUB_OUTPUT
-          echo "api=https://$(terraform output -raw function_default_hostname)"       >> $GITHUB_OUTPUT
-          echo "swa=https://$(terraform output -raw swa_default_hostname)"            >> $GITHUB_OUTPUT
-          echo "site_url=$(terraform output -raw site_url)"                           >> $GITHUB_OUTPUT
-    outputs:
-      rg:        ${{ steps.tf_out_prod.outputs.rg }}
-      func_name: ${{ steps.tf_out_prod.outputs.func_name }}
-      swa_name:  ${{ steps.tf_out_prod.outputs.swa_name }}
-      api:       ${{ steps.tf_out_prod.outputs.api }}
-      swa:       ${{ steps.tf_out_prod.outputs.swa }}
-      site_url:  ${{ steps.tf_out_prod.outputs.site_url }}
-
-  # =========================
-  # 4) Deploy DEV (Functions + SWA)
+  # 2) Deploy DEV (Functions + SWA)
   # =========================
   deploy_dev:
     name: Deploy to DEV (Functions + SWA)
+    environment: dev
     runs-on: ubuntu-latest
     needs: [infra_dev, build_functions]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -202,8 +167,7 @@ jobs:
         with:
           app-name: ${{ env.AZ_FUNC_NAME }}
           package: _dist/functionapp.zip
-        # NOTE: If you're on Flex Consumption, replace this action with:
-        # az storage blob upload + update the Flex app package settings.
+        # If you migrate to Flex Consumption, replace this step (ask for snippet).
 
       - name: Add CORS for DEV Function App
         shell: bash
@@ -219,7 +183,7 @@ jobs:
         shell: bash
         run: echo "window.__APP_CONFIG__={apiBase:'${API_BASE_URL}'};" > FrontEnd/appconfig.js
 
-      # ====== NEW: fetch SWA token at runtime (DEV) ======
+      # Fetch SWA token at runtime (DEV)
       - name: Get SWA deployment token (DEV)
         id: swa_token_dev
         shell: bash
@@ -249,10 +213,11 @@ jobs:
           echo "api=${API_BASE_URL}" >> $GITHUB_OUTPUT
 
   # =========================
-  # 5) Smoke DEV
+  # 3) Smoke DEV
   # =========================
   smoke_dev:
     name: Smoke test DEV (Cypress)
+    environment: dev
     runs-on: ubuntu-latest
     needs: [deploy_dev]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -280,14 +245,64 @@ jobs:
           working-directory: Smoke
 
   # =========================
-  # 6) Deploy PROD (Functions + SWA)
+  # 4) Terraform: PROD infra (runs AFTER smoke passes)
+  # =========================
+  infra_prod:
+    name: Terraform (PROD)
+    environment: prod
+    runs-on: ubuntu-latest
+    needs: [smoke_dev]
+    permissions: { id-token: write, contents: read }
+    defaults: { run: { working-directory: Infra } }
+    env:
+      TF_IN_AUTOMATION: "1"
+      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Init PROD state
+        run: terraform init -input=false -reconfigure -backend-config="key=cloudchallenge/prod.tfstate"
+
+      - name: Validate
+        run: terraform validate
+
+      - name: Plan (PROD)
+        run: terraform plan -input=false -lock=false -var-file=env/prod.tfvars -out=tfplan
+
+      - name: Apply (PROD)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Export PROD outputs
+        id: tf_out_prod
+        run: |
+          echo "rg=$(terraform output -raw rg_name)"                                  >> $GITHUB_OUTPUT
+          echo "func_name=$(terraform output -raw function_app_name)"                 >> $GITHUB_OUTPUT
+          echo "swa_name=$(terraform output -raw swa_name)"                           >> $GITHUB_OUTPUT
+          echo "api=https://$(terraform output -raw function_default_hostname)"       >> $GITHUB_OUTPUT
+          echo "swa=https://$(terraform output -raw swa_default_hostname)"            >> $GITHUB_OUTPUT
+          echo "site_url=$(terraform output -raw site_url)"                           >> $GITHUB_OUTPUT
+    outputs:
+      rg:        ${{ steps.tf_out_prod.outputs.rg }}
+      func_name: ${{ steps.tf_out_prod.outputs.func_name }}
+      swa_name:  ${{ steps.tf_out_prod.outputs.swa_name }}
+      api:       ${{ steps.tf_out_prod.outputs.api }}
+      swa:       ${{ steps.tf_out_prod.outputs.swa }}
+      site_url:  ${{ steps.tf_out_prod.outputs.site_url }}
+
+  # =========================
+  # 5) Deploy PROD (Functions + SWA)
   # =========================
   deploy_prod:
     name: Promote to PROD (Functions + SWA)
-    runs-on: ubuntu-latest
-    needs: [infra_prod, smoke_dev, build_functions]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: prod
+    runs-on: ubuntu-latest
+    needs: [infra_prod, build_functions]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     env:
       AZ_RG:        ${{ needs.infra_prod.outputs.rg }}
       AZ_FUNC_NAME: ${{ needs.infra_prod.outputs.func_name }}
@@ -331,7 +346,7 @@ jobs:
         shell: bash
         run: echo "window.__APP_CONFIG__={apiBase:'${API_BASE_URL}'};" > FrontEnd/appconfig.js
 
-      # ====== NEW: fetch SWA token at runtime (PROD) ======
+      # Fetch SWA token at runtime (PROD)
       - name: Get SWA deployment token (PROD)
         id: swa_token_prod
         shell: bash

@@ -7,6 +7,7 @@ on:
       - 'BackEnd/**'
       - 'FrontEnd/**'
       - 'Smoke/**'
+      - 'Infra/**'
       - '.github/workflows/ci-cd.yml'
   pull_request:
     branches: [ main ]
@@ -14,6 +15,7 @@ on:
       - 'BackEnd/**'
       - 'FrontEnd/**'
       - 'Smoke/**'
+      - 'Infra/**'
       - '.github/workflows/ci-cd.yml'
   workflow_dispatch:
 
@@ -22,28 +24,18 @@ permissions:
   contents: read
 
 env:
-  # ===== adjust to match your Azure resource names =====
-  # DEV
-  FUNCTIONAPP_NAME_DEV: cloudchallenge-dev-func
-  FUNCTIONAPP_RG_DEV: rg-cloudchallenge-dev
-  SWA_NAME_DEV: cloudchallenge-dev-swa
-  SITE_URL_DEV: https://dev.zoltanolasz.com
-
-  # PROD
-  FUNCTIONAPP_NAME_PROD: counterAPI
-  FUNCTIONAPP_RG_PROD: CloudChallenge
-  SWA_NAME_PROD: CloudChallenge
-  SITE_URL_PROD: https://zoltanolasz.com
-
-  # Code layout
+  # Code layout only (infra names come from Terraform outputs)
   FUNCTIONS_DIR: BackEnd
-  STATIC_DIR: FrontEnd   # <-- your static files live here
+  STATIC_DIR: FrontEnd
 
 concurrency:
   group: swa-deploy
   cancel-in-progress: true
 
 jobs:
+  # =========================
+  # 1) Build Functions ZIP
+  # =========================
   build_functions:
     name: Build Functions zip (Python v2)
     runs-on: ubuntu-latest
@@ -85,11 +77,105 @@ jobs:
           path: functionapp.zip
           if-no-files-found: error
 
+  # =========================
+  # 2) Terraform: DEV infra
+  # =========================
+  infra_dev:
+    name: Terraform (DEV)
+    runs-on: ubuntu-latest
+    permissions: { id-token: write, contents: read }
+    defaults: { run: { working-directory: Infra } }
+    env:
+      TF_IN_AUTOMATION: "1"
+      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Init DEV state
+        run: terraform init -input=false -reconfigure -backend-config="key=cloudchallenge/dev.tfstate"
+      - run: terraform validate
+      - name: Plan (DEV)
+        run: terraform plan -input=false -lock-timeout=5m -var-file=env/dev.tfvars -out=tfplan
+      - name: Apply (DEV)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: terraform apply -input=false -auto-approve tfplan
+      - name: Export DEV outputs
+        id: tf_out_dev
+        run: |
+          echo "rg=$(terraform output -raw rg_name)"                                  >> $GITHUB_OUTPUT
+          echo "func_name=$(terraform output -raw function_app_name)"                 >> $GITHUB_OUTPUT
+          echo "swa_name=$(terraform output -raw swa_name)"                           >> $GITHUB_OUTPUT
+          echo "api=https://$(terraform output -raw function_default_hostname)"       >> $GITHUB_OUTPUT
+          echo "swa=https://$(terraform output -raw swa_default_hostname)"            >> $GITHUB_OUTPUT
+          echo "site_url=$(terraform output -raw site_url)"                           >> $GITHUB_OUTPUT
+    outputs:
+      rg:        ${{ steps.tf_out_dev.outputs.rg }}
+      func_name: ${{ steps.tf_out_dev.outputs.func_name }}
+      swa_name:  ${{ steps.tf_out_dev.outputs.swa_name }}
+      api:       ${{ steps.tf_out_dev.outputs.api }}
+      swa:       ${{ steps.tf_out_dev.outputs.swa }}
+      site_url:  ${{ steps.tf_out_dev.outputs.site_url }}
+
+  # =========================
+  # 3) Terraform: PROD infra (parallel)
+  # =========================
+  infra_prod:
+    name: Terraform (PROD)
+    runs-on: ubuntu-latest
+    permissions: { id-token: write, contents: read }
+    defaults: { run: { working-directory: Infra } }
+    env:
+      TF_IN_AUTOMATION: "1"
+      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Init PROD state
+        run: terraform init -input=false -reconfigure -backend-config="key=cloudchallenge/prod.tfstate"
+      - run: terraform validate
+      - name: Plan (PROD)
+        run: terraform plan -input=false -lock-timeout=5m -var-file=env/prod.tfvars -out=tfplan
+      - name: Apply (PROD)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: terraform apply -input=false -auto-approve tfplan
+      - name: Export PROD outputs
+        id: tf_out_prod
+        run: |
+          echo "rg=$(terraform output -raw rg_name)"                                  >> $GITHUB_OUTPUT
+          echo "func_name=$(terraform output -raw function_app_name)"                 >> $GITHUB_OUTPUT
+          echo "swa_name=$(terraform output -raw swa_name)"                           >> $GITHUB_OUTPUT
+          echo "api=https://$(terraform output -raw function_default_hostname)"       >> $GITHUB_OUTPUT
+          echo "swa=https://$(terraform output -raw swa_default_hostname)"            >> $GITHUB_OUTPUT
+          echo "site_url=$(terraform output -raw site_url)"                           >> $GITHUB_OUTPUT
+    outputs:
+      rg:        ${{ steps.tf_out_prod.outputs.rg }}
+      func_name: ${{ steps.tf_out_prod.outputs.func_name }}
+      swa_name:  ${{ steps.tf_out_prod.outputs.swa_name }}
+      api:       ${{ steps.tf_out_prod.outputs.api }}
+      swa:       ${{ steps.tf_out_prod.outputs.swa }}
+      site_url:  ${{ steps.tf_out_prod.outputs.site_url }}
+
+  # =========================
+  # 4) Deploy DEV (Functions + SWA)
+  # =========================
   deploy_dev:
     name: Deploy to DEV (Functions + SWA)
     runs-on: ubuntu-latest
-    needs: [build_functions]
+    needs: [infra_dev, build_functions]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    env:
+      AZ_RG:        ${{ needs.infra_dev.outputs.rg }}
+      AZ_FUNC_NAME: ${{ needs.infra_dev.outputs.func_name }}
+      AZ_SWA_NAME:  ${{ needs.infra_dev.outputs.swa_name }}
+      API_BASE_URL: ${{ needs.infra_dev.outputs.api }}
+      SWA_DEFAULT:  ${{ needs.infra_dev.outputs.swa }}
+      SITE_URL:     ${{ needs.infra_dev.outputs.site_url }}
     outputs:
       swa: ${{ steps.dev_out.outputs.swa }}
       api: ${{ steps.dev_out.outputs.api }}
@@ -112,53 +198,57 @@ jobs:
       - name: Deploy Functions (DEV)
         uses: Azure/functions-action@v1
         with:
-          app-name: ${{ env.FUNCTIONAPP_NAME_DEV }}
+          app-name: ${{ env.AZ_FUNC_NAME }}
           package: _dist/functionapp.zip
+        # NOTE: If you're on Flex Consumption, replace this action with:
+        # az storage blob upload + update the Flex app package settings.
 
-      - name: Add CORS for DEV Function App (SWA default + custom URL)
+      - name: Add CORS for DEV Function App
         shell: bash
         run: |
-          SWA_HOST=$(az staticwebapp show -g "${{ env.FUNCTIONAPP_RG_DEV }}" -n "${{ env.SWA_NAME_DEV }}" --query defaultHostname -o tsv)
-          az functionapp cors remove -g "${{ env.FUNCTIONAPP_RG_DEV }}" -n "${{ env.FUNCTIONAPP_NAME_DEV }}" --allowed-origins '*' || true
-          az functionapp cors add    -g "${{ env.FUNCTIONAPP_RG_DEV }}" -n "${{ env.FUNCTIONAPP_NAME_DEV }}" --allowed-origins "https://${SWA_HOST}" "${{ env.SITE_URL_DEV }}"
+          az functionapp cors remove -g "${AZ_RG}" -n "${AZ_FUNC_NAME}" --allowed-origins '*' || true
+          if [ -n "${SITE_URL}" ]; then
+            az functionapp cors add -g "${AZ_RG}" -n "${AZ_FUNC_NAME}" --allowed-origins "${SWA_DEFAULT}" "${SITE_URL}"
+          else
+            az functionapp cors add -g "${AZ_RG}" -n "${AZ_FUNC_NAME}" --allowed-origins "${SWA_DEFAULT}"
+          fi
 
       - name: Stamp DEV API base into appconfig.js
         shell: bash
-        run: |
-          API_HOST=$(az functionapp show -g "${{ env.FUNCTIONAPP_RG_DEV }}" -n "${{ env.FUNCTIONAPP_NAME_DEV }}" --query defaultHostName -o tsv)
-          echo "window.__APP_CONFIG__={apiBase:'https://${API_HOST}'};" > FrontEnd/appconfig.js
+        run: echo "window.__APP_CONFIG__={apiBase:'${API_BASE_URL}'};" > FrontEnd/appconfig.js
 
-      - name: Deploy SWA (DEV) — static files, no build
-        # Avoid failing on fork PRs where secrets aren't available:
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
+      # ====== NEW: fetch SWA token at runtime (DEV) ======
+      - name: Get SWA deployment token (DEV)
+        id: swa_token_dev
+        shell: bash
+        run: |
+          TOKEN=$(az staticwebapp secrets list -g "${AZ_RG}" -n "${AZ_SWA_NAME}" --query properties.apiKey -o tsv)
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            TOKEN=$(az staticwebapp secrets list -g "${AZ_RG}" -n "${AZ_SWA_NAME}" --query properties.deploymentToken -o tsv)
+          fi
+          echo "token=${TOKEN}" >> $GITHUB_OUTPUT
+
+      - name: Deploy SWA (DEV) — static files only
         uses: Azure/static-web-apps-deploy@v1
         with:
           action: upload
-          azure_static_web_apps_api_token: ${{ secrets.SWA_TOKEN_DEV }}
-          app_location: ${{ env.STATIC_DIR }}   # <-- just upload this folder
-          output_location: ""                   # not used
-          skip_app_build: true                  # don't run Oryx
+          azure_static_web_apps_api_token: ${{ steps.swa_token_dev.outputs.token }}
+          app_location: ${{ env.STATIC_DIR }}
+          output_location: ""
+          skip_app_build: true
           skip_api_build: true
           production_branch: main
 
-      - name: Expose DEV endpoints for downstream jobs
+      - name: Expose DEV endpoints
         id: dev_out
         shell: bash
         run: |
-          SWA_HOST=$(az staticwebapp show -g "${{ env.FUNCTIONAPP_RG_DEV }}" -n "${{ env.SWA_NAME_DEV }}" --query defaultHostname -o tsv)
-          FUNC_HOST=$(az functionapp show -g "${{ env.FUNCTIONAPP_RG_DEV }}" -n "${{ env.FUNCTIONAPP_NAME_DEV }}" --query defaultHostName -o tsv)
-          echo "swa=https://${SWA_HOST}"   >> $GITHUB_OUTPUT
-          echo "api=https://${FUNC_HOST}"  >> $GITHUB_OUTPUT
+          echo "swa=${SWA_DEFAULT}"  >> $GITHUB_OUTPUT
+          echo "api=${API_BASE_URL}" >> $GITHUB_OUTPUT
 
-      - name: Close SWA preview (on PR close)
-        if: github.event_name == 'pull_request' && github.event.action == 'closed'
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          action: close
-          azure_static_web_apps_api_token: ${{ secrets.SWA_TOKEN_DEV }}
-          app_location: ${{ env.STATIC_DIR }}
-          output_location: ""
-
+  # =========================
+  # 5) Smoke DEV
+  # =========================
   smoke_dev:
     name: Smoke test DEV (Cypress)
     runs-on: ubuntu-latest
@@ -182,28 +272,27 @@ jobs:
           else
             npm install --no-audit --no-fund
           fi
-      - name: Verify tools (debug)
-        run: |
-          node -v
-          npm -v
-
-      - name: Verify Cypress
-        run: npx cypress verify
-
-      - name: Debug API URL
-        run: echo "API -> ${{ env.CYPRESS_apiBaseUrl }}"
-        
       - name: Run Cypress smoke
         uses: cypress-io/github-action@v6
         with:
           working-directory: Smoke
 
+  # =========================
+  # 6) Deploy PROD (Functions + SWA)
+  # =========================
   deploy_prod:
     name: Promote to PROD (Functions + SWA)
     runs-on: ubuntu-latest
-    needs: [smoke_dev]
+    needs: [infra_prod, smoke_dev, build_functions]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: prod
+    env:
+      AZ_RG:        ${{ needs.infra_prod.outputs.rg }}
+      AZ_FUNC_NAME: ${{ needs.infra_prod.outputs.func_name }}
+      AZ_SWA_NAME:  ${{ needs.infra_prod.outputs.swa_name }}
+      API_BASE_URL: ${{ needs.infra_prod.outputs.api }}
+      SWA_DEFAULT:  ${{ needs.infra_prod.outputs.swa }}
+      SITE_URL:     ${{ needs.infra_prod.outputs.site_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -223,27 +312,39 @@ jobs:
       - name: Deploy Functions (PROD)
         uses: Azure/functions-action@v1
         with:
-          app-name: ${{ env.FUNCTIONAPP_NAME_PROD }}
+          app-name: ${{ env.AZ_FUNC_NAME }}
           package: _dist/functionapp.zip
 
-      - name: Add CORS for PROD Function App (SWA default + custom URL)
+      - name: Add CORS for PROD Function App
         shell: bash
         run: |
-          SWA_HOST=$(az staticwebapp show -g "${{ env.FUNCTIONAPP_RG_PROD }}" -n "${{ env.SWA_NAME_PROD }}" --query defaultHostname -o tsv)
-          az functionapp cors remove -g "${{ env.FUNCTIONAPP_RG_PROD }}" -n "${{ env.FUNCTIONAPP_NAME_PROD }}" --allowed-origins '*' || true
-          az functionapp cors add    -g "${{ env.FUNCTIONAPP_RG_PROD }}" -n "${{ env.FUNCTIONAPP_NAME_PROD }}" --allowed-origins "https://${SWA_HOST}" "${{ env.SITE_URL_PROD }}"
+          az functionapp cors remove -g "${AZ_RG}" -n "${AZ_FUNC_NAME}" --allowed-origins '*' || true
+          if [ -n "${SITE_URL}" ]; then
+            az functionapp cors add -g "${AZ_RG}" -n "${AZ_FUNC_NAME}" --allowed-origins "${SWA_DEFAULT}" "${SITE_URL}"
+          else
+            az functionapp cors add -g "${AZ_RG}" -n "${AZ_FUNC_NAME}" --allowed-origins "${SWA_DEFAULT}"
+          fi
 
       - name: Stamp PROD API base into appconfig.js
         shell: bash
-        run: |
-          API_HOST=$(az functionapp show -g "${{ env.FUNCTIONAPP_RG_PROD }}" -n "${{ env.FUNCTIONAPP_NAME_PROD }}" --query defaultHostName -o tsv)
-          echo "window.__APP_CONFIG__={apiBase:'https://${API_HOST}'};" > FrontEnd/appconfig.js
+        run: echo "window.__APP_CONFIG__={apiBase:'${API_BASE_URL}'};" > FrontEnd/appconfig.js
 
-      - name: Deploy SWA (PROD) — static files, no build
+      # ====== NEW: fetch SWA token at runtime (PROD) ======
+      - name: Get SWA deployment token (PROD)
+        id: swa_token_prod
+        shell: bash
+        run: |
+          TOKEN=$(az staticwebapp secrets list -g "${AZ_RG}" -n "${AZ_SWA_NAME}" --query properties.apiKey -o tsv)
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            TOKEN=$(az staticwebapp secrets list -g "${AZ_RG}" -n "${AZ_SWA_NAME}" --query properties.deploymentToken -o tsv)
+          fi
+          echo "token=${TOKEN}" >> $GITHUB_OUTPUT
+
+      - name: Deploy SWA (PROD) — static files only
         uses: Azure/static-web-apps-deploy@v1
         with:
           action: upload
-          azure_static_web_apps_api_token: ${{ secrets.SWA_TOKEN_PROD }}
+          azure_static_web_apps_api_token: ${{ steps.swa_token_prod.outputs.token }}
           app_location: ${{ env.STATIC_DIR }}
           output_location: ""
           skip_app_build: true

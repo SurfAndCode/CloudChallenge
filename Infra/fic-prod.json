@@ -1,0 +1,7 @@
+﻿{
+  "name": "github-env-prod",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:SurfAndCode/CloudChallenge:environment:prod",
+  "description": "GitHub OIDC for PROD environment",
+  "audiences": ["api://AzureADTokenExchange"]
+}

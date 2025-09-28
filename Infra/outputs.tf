@@ -1,9 +1,26 @@
+output "rg_name" {
+  value = azurerm_resource_group.rg.name
+}
+
+output "function_app_name" {
+  value = azurerm_linux_function_app.func.name
+}
+
 output "function_default_hostname" {
   value = azurerm_linux_function_app.func.default_hostname
 }
 
+output "swa_name" {
+  value = azurerm_static_web_app.swa.name
+}
+
 output "swa_default_hostname" {
   value = azurerm_static_web_app.swa.default_host_name
+}
+
+# Optional: your custom SWA URL if you want it in CORS
+output "site_url" {
+  value = var.custom_host != "" ? "https://${var.custom_host}" : ""
 }
 
 output "cosmos_primary_sql_connection_string" {

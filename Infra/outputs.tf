@@ -18,11 +18,6 @@ output "swa_default_hostname" {
   value = azurerm_static_web_app.swa.default_host_name
 }
 
-# Optional: your custom SWA URL if you want it in CORS
-output "site_url" {
-  value = var.custom_host != "" ? "https://${var.custom_host}" : ""
-}
-
 output "cosmos_primary_sql_connection_string" {
   value     = azurerm_cosmosdb_account.cosmos.primary_sql_connection_string
   sensitive = true

@@ -162,6 +162,24 @@ jobs:
           name: functionapp-zip
           path: _dist
 
+      - name: Show values from infra_dev
+        shell: bash
+        run: |
+          echo "SUB: $(az account show --query id -o tsv)"
+          echo "TENANT: $(az account show --query tenantId -o tsv)"
+          echo "RG=$AZ_RG"
+          echo "FUNC=$AZ_FUNC_NAME"
+          echo "SWA=$AZ_SWA_NAME"
+          echo "API_BASE_URL=$API_BASE_URL"
+          echo "SWA_DEFAULT=$SWA_DEFAULT"
+          echo "SITE_URL=$SITE_URL"
+
+      - name: Verify Function App exists in this subscription
+        shell: bash
+        run: |
+          set -e
+          az functionapp show -g "${AZ_RG}" -n "${AZ_FUNC_NAME}" --query "name" -o tsv
+
       - name: Deploy Functions (DEV)
         uses: Azure/functions-action@v1
         with:

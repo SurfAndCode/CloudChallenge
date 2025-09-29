@@ -29,7 +29,7 @@
   // ====== DOM ======
   const elValue = document.getElementById("visit-value");
   const elSub   = document.getElementById("visit-sub");
-  const elBtn   = document.getElementById("visit-refresh");
+  // const elBtn   = document.getElementById("visit-refresh");
   const printBtn = document.getElementById("print-btn");
 
   // Hook up print button (moved from inline onclick)
@@ -107,7 +107,7 @@
 
   // ====== INIT ======
   document.addEventListener("DOMContentLoaded", () => {
-    if (elBtn) elBtn.addEventListener("click", () => fetchCount({forceGet:true}));
+    // if (elBtn) elBtn.addEventListener("click", () => fetchCount({forceGet:true}));
     // Fetch on load
     fetchCount();
   });

@@ -1,3 +1,8 @@
+# Expose the site URL so CI can read it with `terraform output -raw site_url`
+output "site_url" {
+  value = var.site_url
+}
+
 output "rg_name" {
   value = azurerm_resource_group.rg.name
 }

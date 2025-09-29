@@ -2,10 +2,32 @@
 # variables.tf
 ##############################
 
+# Auth mode: "cli" for local (az login), "oidc" for GitHub Actions
 variable "auth_mode" {
-  description = "Auth mode: 'cli' (local) or 'oidc' (CI)."
   type        = string
   default     = "cli"
+  validation {
+    condition     = contains(["cli", "oidc"], var.auth_mode)
+    error_message = "auth_mode must be one of: cli, oidc"
+  }
+}
+
+# Optional—leave null to use az CLI / OIDC context
+variable "subscription_id" {
+  type        = string
+  default     = null
+  description = "Azure subscription ID (optional when using CLI/OIDC)."
+}
+variable "tenant_id" {
+  type        = string
+  default     = null
+  description = "Azure tenant ID (optional when using CLI/OIDC)."
+}
+
+# 🔧 NEW: site_url so CI/outputs can read it
+variable "site_url" {
+  type        = string
+  description = "Public site URL for this environment (e.g., https://dev.zoltanolasz.com)."
 }
 
 variable "env" {

@@ -24,7 +24,6 @@ permissions:
   contents: read
 
 env:
-  # Code layout (infra names come from Terraform outputs)
   FUNCTIONS_DIR: BackEnd
   STATIC_DIR: FrontEnd
 
@@ -185,7 +184,6 @@ jobs:
         with:
           app-name: ${{ env.AZ_FUNC_NAME }}
           package: _dist/functionapp.zip
-        # If you migrate to Flex Consumption, replace this step (ask for snippet).
 
       - name: Add CORS for DEV Function App
         shell: bash

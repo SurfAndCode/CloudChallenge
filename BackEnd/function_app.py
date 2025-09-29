@@ -68,7 +68,6 @@ def post_visit(inc: Optional[str] = Query(default="1")):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
-# --- NEW: health/ok endpoint (matches your v1 snippet) ---
 @fastapi_app.get("/health")
 def ok():
     return {"ok": True}

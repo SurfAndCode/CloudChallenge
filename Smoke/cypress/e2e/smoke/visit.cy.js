@@ -1,4 +1,3 @@
-// Visit counter semantics
 const PATH = "/visit";
 const allowMutation = Cypress.env("ALLOW_MUTATION");
 

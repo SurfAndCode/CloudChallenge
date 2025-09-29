@@ -16,7 +16,6 @@ terraform {
 provider "azurerm" {
   features {}
 
-  # pick auth mode via variable (defaults to CLI)
   use_cli  = var.auth_mode == "cli"
   use_oidc = var.auth_mode == "oidc"
 

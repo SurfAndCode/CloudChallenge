@@ -1,9 +1,9 @@
 env            = "prod"
 name_prefix    = "cloudchallenge"
 location       = "australiaeast"
-swa_location   = "eastasia"                         # match your prod SWA region
-cosmos_free_tier  = false                           # often off in prod
-cosmos_serverless = true                           # pick one, not both (precondition)
+swa_location   = "eastasia"                         
+cosmos_free_tier  = false                           
+cosmos_serverless = true                        
 custom_domains = ["zoltanolasz.com", "www.zoltanolasz.com"]
 auth_mode  = "oidc"
 site_url   = "https://zoltanolasz.com"

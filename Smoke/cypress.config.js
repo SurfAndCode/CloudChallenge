@@ -3,10 +3,9 @@ const { defineConfig } = require('cypress')
 
 module.exports = defineConfig({
   e2e: {
-    // <- THIS is what cy.request('/api/...') uses
     baseUrl:
-      process.env.CYPRESS_apiBaseUrl ||      // camelCase (what your job sets)
-      process.env.CYPRESS_BASE_URL   ||      // uppercase fallback
+      process.env.CYPRESS_apiBaseUrl ||      
+      process.env.CYPRESS_BASE_URL   ||     
       '',
 
     env: {

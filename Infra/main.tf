@@ -19,7 +19,6 @@ resource "azurerm_cosmosdb_account" "cosmos" {
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
-  # 👇 required by your current azurerm schema
   offer_type          = "Standard"
 
   kind                = "GlobalDocumentDB"

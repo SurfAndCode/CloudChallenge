@@ -24,7 +24,6 @@ variable "tenant_id" {
   description = "Azure tenant ID (optional when using CLI/OIDC)."
 }
 
-# 🔧 NEW: site_url so CI/outputs can read it
 variable "site_url" {
   type        = string
   description = "Public site URL for this environment (e.g., https://dev.zoltanolasz.com)."
